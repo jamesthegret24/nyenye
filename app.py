@@ -1,13 +1,3 @@
-!⚠ Veexye 99+ Vouches [ 7 INCH ]
-devioury
-Online
-
-
-
-deviouryy — Yesterday at 11:55 PM
-discord.py
-requests
-!⚠ Veexye 99+ Vouches [ 7 INCH ] — 3:32 AM
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -316,4 +306,3 @@ if __name__ == "__main__":
     else:
         bot.run(TOKEN)
 app.py
-12 KB
